@@ -5,6 +5,44 @@ import java. util.Random;
 import javax.swing.*;
 
 public class BlackJack {
+    private class Betting{
+        float balance;
+        float atStake= 0;
+        public Betting(float balance){
+            this.balance = balance;
+        }
+        public boolean sufficientBalance(float bet){return this.balance - bet >=0;
+            
+        }
+        public void bet(float amount){
+            if (sufficientBalance(amount)){
+                this.atStake = amount;
+                this.balance -= amount;
+            }
+            else{
+                System.out.println("Insufficient balance");
+            }
+        }
+        public void winBet(){
+            this.balance += 2*atStake;
+            this.atStake = 0.0f;
+        }
+        public void tieBet(){
+            this.balance += atStake;
+            this.atStake = 0.0f;
+        }
+        public void loseBet(){
+            this.atStake = 0.0f;
+        }
+
+        public float getBalance(){
+            return this.balance;
+        }
+        public float getAtStake(){
+            return this.atStake;
+        }
+
+    }
     private class Card{
         String value;
         String type;
@@ -48,6 +86,10 @@ public class BlackJack {
     ArrayList<Card> playerHand;
     int playerSum;
     int playerAceCount;
+    // betting functionality
+    Betting betting ;
+
+    
 
     //Window
     int boardWidth = 600;
@@ -85,6 +127,8 @@ public class BlackJack {
                     g.drawImage(cardImg,20+(cardWidth+5)*i,320,cardWidth,cardHeight,null);
 
                 }
+                
+                
                 if (!stayButton.isEnabled()){
                     dealerSum = reduceDealerAce();
                     playerSum = reducePlayerAce();
@@ -95,9 +139,13 @@ public class BlackJack {
                     String message = "";
                     if ( playerSum > 21){
                         message = "You lose !";
+                        betting.loseBet();
+                        updateLabels();
                     }
                     else if (dealerSum> 21){
                         message = "You win!";
+                        betting.winBet();
+                        updateLabels();
 
                     }
                     else if ( playerSum == dealerSum){
@@ -105,9 +153,13 @@ public class BlackJack {
                     }
                     else if (playerSum > dealerSum){
                         message = "You win!";
+                        betting.winBet();
+                        updateLabels();
                     }
                     else if (playerSum < dealerSum){
                         message = "You lose ! ";
+                        betting.loseBet();
+                        updateLabels();
                     }
                     g.setFont(new Font("Arial",Font.PLAIN,30));
                     g.setColor(Color.white);
@@ -125,6 +177,10 @@ public class BlackJack {
     JButton hitButton = new JButton("Hit");
     JButton stayButton = new JButton("Stay");
     JButton resetButton = new JButton("Reset");
+    JLabel betLabel = new JLabel("<html>Bet Amount <font color='green'>$</font> :</html>");
+    JTextField betTextfield = new JTextField("      ");
+    JLabel balanceLabel ;
+    JLabel atStakeLabel ;
 
     
 
@@ -132,6 +188,11 @@ public class BlackJack {
 
 
     public BlackJack(){
+        betting = new Betting(100.0f);
+        balanceLabel = new JLabel("<html> Balance: <font color ='green'> $" + betting.getBalance() + "</font></html>");
+        atStakeLabel = new JLabel("At Stake: $"+betting.getAtStake());
+        atStakeLabel.setFont(new Font("Arial",Font.BOLD,20));
+        atStakeLabel.setForeground(Color.yellow);
         startGame();
         frame.setVisible(true);
         frame.setSize(boardWidth,boardHeight);
@@ -141,7 +202,9 @@ public class BlackJack {
 
         gamePanel.setLayout(new BorderLayout());
         gamePanel.setBackground(new Color(53,101,77));
+        gamePanel.add(atStakeLabel,BorderLayout.EAST);
         frame.add(gamePanel);
+
 
         hitButton.setFocusable(false);
         buttonPanel.add(hitButton);
@@ -149,6 +212,11 @@ public class BlackJack {
         buttonPanel.add(stayButton);
         resetButton.setFocusable(false);
         buttonPanel.add(resetButton);
+        buttonPanel.add(balanceLabel);
+        //buttonPanel.add(atStakeLabel);
+        buttonPanel.add(betLabel);
+        buttonPanel.add(betTextfield);
+        
         frame.add(buttonPanel,BorderLayout.SOUTH);
         resetButton.addActionListener(new ActionListener(){
             public void actionPerformed(ActionEvent e){
@@ -182,6 +250,21 @@ public class BlackJack {
                     dealerHand.add(card);               
                  }
                  gamePanel.repaint();
+                 updateLabels();
+            }
+        });
+        betTextfield.addActionListener(new ActionListener(){
+            public void actionPerformed(ActionEvent e){
+                float bet = Float.parseFloat(betTextfield.getText());
+                if (betting.sufficientBalance(bet)){
+                    betting.bet(bet);
+                    updateLabels();
+                    
+                    gamePanel.repaint();
+                }
+                else{
+                    System.out.println("Insufficient balance");
+                }
             }
         });
         
@@ -189,6 +272,11 @@ public class BlackJack {
 
 
 
+    }
+    // Method to update labels
+    private void updateLabels() {
+        balanceLabel.setText("Balance: $" + betting.getBalance());
+        atStakeLabel.setText("At Stake: $" + betting.getAtStake());
     }
     public void startGame(){
         if (deck!=null){
